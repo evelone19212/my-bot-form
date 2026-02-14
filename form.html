@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Оформление карты</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-align: center;
+            color: var(--tg-theme-text-color, #000000);
+        }
+        
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--tg-theme-hint-color, #666666);
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--tg-theme-hint-color, #333333);
+            font-size: 14px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid var(--tg-theme-hint-color, #dddddd);
+            border-radius: 12px;
+            background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            color: var(--tg-theme-text-color, #000000);
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        input:focus, select:focus {
+            border-color: var(--tg-theme-button-color, #2481cc);
+        }
+        
+        input::placeholder {
+            color: #999999;
+        }
+        
+        button {
+            width: 100%;
+            padding: 18px;
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: opacity 0.2s;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+            background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            border-radius: 16px;
+            margin-top: 20px;
+        }
+        
+        .success-message h2 {
+            color: #00a86b;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+        
+        .success-message p {
+            color: var(--tg-theme-hint-color, #666666);
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .error-message {
+            color: #ff3b30;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💳 Оформление карты</h1>
+        <div class="subtitle">Заполните анкету для получения карты</div>
+        
+        <form id="applicationForm">
+            <div class="form-group">
+                <label>📋 ФИО полностью</label>
+                <input type="text" id="fullname" placeholder="Иванов Иван Иванович" required>
+                <div class="error-message" id="error-fullname">Введите ФИО полностью</div>
+            </div>
+            
+            <div class="form-group">
+                <label>📱 Номер телефона</label>
+                <input type="tel" id="phone" placeholder="+7 (999) 123-45-67" required>
+                <div class="error-message" id="error-phone">Введите номер телефона</div>
+            </div>
+            
+            <div class="form-group">
+                <label>🎂 Дата рождения</label>
+                <input type="date" id="birthdate" required>
+                <div class="error-message" id="error-birthdate">Укажите дату рождения</div>
+            </div>
+            
+            <div class="form-group">
+                <label>📧 Email</label>
+                <input type="email" id="email" placeholder="example@mail.ru" required>
+                <div class="error-message" id="error-email">Введите корректный email</div>
+            </div>
+            
+            <div class="form-group">
+                <label>🏙️ Город проживания</label>
+                <input type="text" id="city" placeholder="Москва" required>
+                <div class="error-message" id="error-city">Укажите город</div>
+            </div>
+            
+            <button type="submit" id="submitBtn">📨 Отправить заявку</button>
+        </form>
+        
+        <div class="success-message" id="successMessage">
+            <h2>✅ Заявка отправлена!</h2>
+            <p>Спасибо за доверие!</p>
+            <p>Представитель банка свяжется с вами в ближайшее время.</p>
+            <p style="font-size: 12px; margin-top: 20px;">Окно закроется через 2 секунды...</p>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        
+        // Сообщаем, что приложение готово
+        tg.ready();
+        
+        // Растягиваем на весь экран
+        tg.expand();
+        
+        // Показываем кнопку назад
+        tg.BackButton.show();
+        tg.BackButton.onClick(function() {
+            tg.close();
+        });
+        
+        // Получаем параметры из URL (какой банк выбран)
+        const urlParams = new URLSearchParams(window.location.search);
+        const bank = urlParams.get('bank');
+        
+        // Меняем заголовок в зависимости от банка
+        if (bank === 'tinkoff') {
+            document.querySelector('h1').innerHTML = '🟢 Оформление Т-Банк';
+        } else if (bank === 'vtb') {
+            document.querySelector('h1').innerHTML = '🔵 Оформление ВТБ';
+        } else if (bank === 'gazprom') {
+            document.querySelector('h1').innerHTML = '💚 Оформление Газпромбанк';
+        }
+        
+        // Обработка отправки формы
+        document.getElementById('applicationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Собираем данные
+            const formData = {
+                fullname: document.getElementById('fullname').value,
+                phone: document.getElementById('phone').value,
+                birthdate: document.getElementById('birthdate').value,
+                email: document.getElementById('email').value,
+                city: document.getElementById('city').value,
+                bank: bank || 'unknown'
+            };
+            
+            // Проверка на заполнение
+            let hasError = false;
+            ['fullname', 'phone', 'birthdate', 'email', 'city'].forEach(field => {
+                if (!formData[field]) {
+                    document.getElementById(`error-${field}`).style.display = 'block';
+                    hasError = true;
+                } else {
+                    document.getElementById(`error-${field}`).style.display = 'none';
+                }
+            });
+            
+            if (hasError) {
+                tg.HapticFeedback.notificationOccurred('error');
+                return;
+            }
+            
+            // Отправляем данные боту
+            tg.sendData(JSON.stringify(formData));
+            
+            // Вибрация (успех)
+            tg.HapticFeedback.notificationOccurred('success');
+            
+            // Прячем форму и показываем сообщение об успехе
+            document.getElementById('applicationForm').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'block';
+            
+            // Закрываем через 2 секунды
+            setTimeout(function() {
+                tg.close();
+            }, 2000);
+        });
+        
+        // Автоматическое форматирование телефона (простой вариант)
+        document.getElementById('phone').addEventListener('input', function(e) {
+            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
+            if (x) {
+                e.target.value = !x[2] ? x[1] : '+7 (' + x[2] + ') ' + x[3] + (x[4] ? '-' + x[4] : '') + (x[5] ? '-' + x[5] : '');
+            }
+        });
+    </script>
+</body>
+</html>
