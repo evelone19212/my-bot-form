@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Оформление карты</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            padding: 12px 16px;
+            background: var(--tg-theme-bg-color, #ffffff);
+            border-bottom: 1px solid var(--tg-theme-hint-color, #dddddd);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .close-btn {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: var(--tg-theme-text-color, #000000);
+            cursor: pointer;
+        }
+        
+        .webview {
+            flex: 1;
+            width: 100%;
+            border: none;
+            background: white;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span id="bankName">Загрузка...</span>
+            <button class="close-btn" onclick="closeApp()">✕ Закрыть</button>
+        </div>
+        
+        <iframe id="webview" class="webview" sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-top-navigation"></iframe>
+    </div>
+    
+    <div id="loading" class="loading">Загрузка сайта банка...</div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand(); // Растягиваем на весь экран
+        
+        // Получаем параметры из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const bank = urlParams.get('bank') || 'unknown';
+        
+        // Реферальные ссылки (ЗАМЕНИТЕ НА СВОИ!)
+        const BANK_LINKS = {
+            'tinkoff': 'https://www.tinkoff.ru/',
+            'vtb': 'https://www.vtb.ru/',
+            'gazprom': 'https://www.gazprombank.ru/',
+            'sber': 'https://www.sberbank.ru/',
+            'alfa': 'https://alfabank.ru/'
+        };
+        
+        // Названия банков для отображения
+        const BANK_NAMES = {
+            'tinkoff': '🟢 Т-Банк',
+            'vtb': '🔵 ВТБ',
+            'gazprom': '💚 Газпромбанк',
+            'sber': '💚 Сбербанк',
+            'alfa': '💛 Альфа-Банк'
+        };
+        
+        // Устанавливаем название банка
+        document.getElementById('bankName').textContent = BANK_NAMES[bank] || 'Оформление карты';
+        
+        // Получаем ссылку для банка
+        let bankUrl = BANK_LINKS[bank] || 'https://www.tinkoff.ru/';
+        
+        // Добавляем UTM-метки для отслеживания (если нужно)
+        const utmParams = '?utm_source=telegram&utm_medium=mini_app&utm_campaign=bot';
+        bankUrl = bankUrl + utmParams;
+        
+        console.log('Загружаем URL:', bankUrl);
+        
+        // Загружаем сайт в iframe
+        const iframe = document.getElementById('webview');
+        iframe.src = bankUrl;
+        
+        // Скрываем загрузку когда iframe загрузился
+        iframe.onload = function() {
+            document.getElementById('loading').style.display = 'none';
+            console.log('Сайт загружен');
+        };
+        
+        // Обработка ошибок загрузки
+        iframe.onerror = function() {
+            document.getElementById('loading').innerHTML = '❌ Ошибка загрузки. Нажмите кнопку ниже чтобы открыть в браузере.';
+            showOpenInBrowserButton();
+        };
+        
+        // Функция закрытия
+        function closeApp() {
+            tg.close();
+        }
+        
+        // Кнопка открытия в браузере (на случай если iframe не работает)
+        function showOpenInBrowserButton() {
+            const btn = document.createElement('button');
+            btn.textContent = '🌐 Открыть в браузере';
+            btn.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                right: 20px;
+                padding: 15px;
+                background: var(--tg-theme-button-color, #2481cc);
+                color: var(--tg-theme-button-text-color, white);
+                border: none;
+                border-radius: 12px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                z-index: 2000;
+            `;
+            btn.onclick = function() {
+                window.open(bankUrl, '_blank');
+            };
+            document.body.appendChild(btn);
+        }
+        
+        // Отправляем сообщение боту что мини-приложение открыто
+        tg.sendData(JSON.stringify({
+            event: 'app_opened',
+            bank: bank,
+            timestamp: new Date().toISOString()
+        }));
+        
+    </script>
+</body>
+</html>
