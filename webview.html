@@ -1,183 +1,149 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Банк WebView</title>
+    <title>Переход на сайт</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * {
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
             height: 100vh;
             display: flex;
-            flex-direction: column;
-        }
-        
-        .header {
-            padding: 12px 16px;
-            background: var(--tg-theme-secondary-bg-color, #f5f5f5);
-            display: flex;
             align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--tg-theme-hint-color, #dddddd);
-        }
-        
-        .bank-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 500;
-        }
-        
-        .close-btn {
-            padding: 6px 12px;
-            background: var(--tg-theme-bg-color, #ffffff);
-            border: 1px solid var(--tg-theme-hint-color, #dddddd);
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        
-        .browser-btn {
-            padding: 6px 12px;
-            background: var(--tg-theme-button-color, #2481cc);
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-left: 8px;
-        }
-        
-        .webview-container {
-            flex: 1;
-            width: 100%;
-            position: relative;
-        }
-        
-        #webview {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        
-        .loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            justify-content: center;
             text-align: center;
-            z-index: 1000;
+        }
+        
+        .container {
+            padding: 20px;
         }
         
         .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid var(--tg-theme-secondary-bg-color, #f3f3f3);
-            border-top: 4px solid var(--tg-theme-button-color, #2481cc);
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--tg-theme-secondary-bg-color, #f3f3f3);
+            border-top: 5px solid var(--tg-theme-button-color, #2481cc);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+            margin: 0 auto 20px;
         }
         
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        .button {
+            display: inline-block;
+            padding: 15px 30px;
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            margin-top: 20px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 280px;
+        }
+        
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="bank-info">
-            <span id="bankIcon">🏦</span>
-            <span id="bankName">Загрузка...</span>
-        </div>
-        <div>
-            <button class="browser-btn" id="openBrowserBtn" onclick="openInBrowser()">🌐 Браузер</button>
-            <button class="close-btn" onclick="closeApp()">✕ Закрыть</button>
-        </div>
+    <div class="container" id="loadingScreen">
+        <div class="spinner"></div>
+        <h3>Подготовка перехода...</h3>
+        <p style="color: var(--tg-theme-hint-color, #666); margin-top: 10px;">Пожалуйста, подождите</p>
     </div>
     
-    <div class="webview-container">
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <div>Загрузка сайта...</div>
-        </div>
-        <iframe id="webview" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation"></iframe>
+    <div class="container hidden" id="errorScreen">
+        <div style="font-size: 48px; margin-bottom: 20px;">😕</div>
+        <h3>Не удалось открыть автоматически</h3>
+        <p style="margin: 20px 0; color: var(--tg-theme-hint-color, #666);">Нажмите кнопку ниже, чтобы открыть сайт</p>
+        <button class="button" id="manualButton">🌐 Открыть сайт</button>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        const bank = urlParams.get('bank') || 'tinkoff';
-        
-        // Данные банков
-        const bankData = {
-            'tinkoff': {
-                name: 'Т-Банк',
-                icon: '🟢',
-                url: 'https://t.fincpanetwork.ru/click/14567/337/?erid=2W5zFJerRPE'
-            },
-            'vtb': {
-                name: 'ВТБ',
-                icon: '🔵',
-                url: 'https://www.vtb.ru/'
-            },
-            'gazprom': {
-                name: 'Газпромбанк',
-                icon: '💚',
-                url: 'https://www.gazprombank.ru/'
-            }
-        };
-        
-        const currentBank = bankData[bank] || bankData['tinkoff'];
-        
-        // Обновляем интерфейс
-        document.getElementById('bankIcon').textContent = currentBank.icon;
-        document.getElementById('bankName').textContent = currentBank.name;
-        
-        const iframe = document.getElementById('webview');
-        const loading = document.getElementById('loading');
-        
-        // Пытаемся загрузить сайт
-        iframe.src = currentBank.url;
-        
-        iframe.onload = function() {
-            loading.style.display = 'none';
-            console.log('✅ Сайт загружен');
+        (function() {
+            const tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
             
-            tg.sendData(JSON.stringify({
-                action: 'loaded',
-                bank: bank
-            }));
-        };
-        
-        iframe.onerror = function() {
-            loading.innerHTML = '❌ Ошибка загрузки<br><button onclick="openInBrowser()" style="margin-top:10px;padding:8px 16px;">Открыть в браузере</button>';
-        };
-        
-        function openInBrowser() {
-            window.open(currentBank.url, '_blank');
-        }
-        
-        function closeApp() {
-            tg.close();
-        }
-        
-        tg.BackButton.show();
-        tg.BackButton.onClick(closeApp);
-        
+            // Получаем банк из URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const bank = urlParams.get('bank') || 'tinkoff';
+            
+            // Партнерские ссылки (ЗАМЕНИТЕ НА СВОИ!)
+            const bankUrls = {
+                'tinkoff': 'https://www.tinkoff.ru/',
+                'vtb': 'https://www.vtb.ru/',
+                'gazprom': 'https://www.gazprombank.ru/'
+            };
+            
+            const targetUrl = bankUrls[bank] || bankUrls['tinkoff'];
+            
+            // Функция открытия через Telegram Browser
+            function openInTelegramBrowser() {
+                try {
+                    // Метод 1: через openLink (работает в новых версиях Telegram)
+                    if (tg.openLink) {
+                        tg.openLink(targetUrl);
+                        return true;
+                    }
+                    
+                    // Метод 2: через создание тега <a>
+                    const link = document.createElement('a');
+                    link.href = targetUrl;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    return true;
+                    
+                } catch (e) {
+                    console.log('Ошибка:', e);
+                    return false;
+                }
+            }
+            
+            // Пытаемся открыть автоматически
+            const opened = openInTelegramBrowser();
+            
+            if (opened) {
+                // Если открылось, показываем загрузку и закрываем
+                setTimeout(() => {
+                    try {
+                        tg.close();
+                    } catch (e) {}
+                }, 1000);
+            } else {
+                // Если не открылось, показываем кнопку
+                document.getElementById('loadingScreen').classList.add('hidden');
+                document.getElementById('errorScreen').classList.remove('hidden');
+            }
+            
+            // Обработчик ручной кнопки
+            document.getElementById('manualButton').addEventListener('click', function() {
+                window.open(targetUrl, '_blank');
+                setTimeout(() => tg.close(), 500);
+            });
+            
+            // Добавляем кнопку назад
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => tg.close());
+            
+        })();
     </script>
 </body>
-
 </html>
