@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Банк WebView</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--tg-theme-bg-color, #ffffff);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            padding: 12px 16px;
+            background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--tg-theme-hint-color, #dddddd);
+        }
+        
+        .bank-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+        
+        .close-btn {
+            padding: 6px 12px;
+            background: var(--tg-theme-bg-color, #ffffff);
+            border: 1px solid var(--tg-theme-hint-color, #dddddd);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .browser-btn {
+            padding: 6px 12px;
+            background: var(--tg-theme-button-color, #2481cc);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 8px;
+        }
+        
+        .webview-container {
+            flex: 1;
+            width: 100%;
+            position: relative;
+        }
+        
+        #webview {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 1000;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--tg-theme-secondary-bg-color, #f3f3f3);
+            border-top: 4px solid var(--tg-theme-button-color, #2481cc);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="bank-info">
+            <span id="bankIcon">🏦</span>
+            <span id="bankName">Загрузка...</span>
+        </div>
+        <div>
+            <button class="browser-btn" id="openBrowserBtn" onclick="openInBrowser()">🌐 Браузер</button>
+            <button class="close-btn" onclick="closeApp()">✕ Закрыть</button>
+        </div>
+    </div>
+    
+    <div class="webview-container">
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>Загрузка сайта...</div>
+        </div>
+        <iframe id="webview" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation"></iframe>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const bank = urlParams.get('bank') || 'tinkoff';
+        
+        // Данные банков
+        const bankData = {
+            'tinkoff': {
+                name: 'Т-Банк',
+                icon: '🟢',
+                url: 'https://www.tinkoff.ru/'
+            },
+            'vtb': {
+                name: 'ВТБ',
+                icon: '🔵',
+                url: 'https://www.vtb.ru/'
+            },
+            'gazprom': {
+                name: 'Газпромбанк',
+                icon: '💚',
+                url: 'https://www.gazprombank.ru/'
+            }
+        };
+        
+        const currentBank = bankData[bank] || bankData['tinkoff'];
+        
+        // Обновляем интерфейс
+        document.getElementById('bankIcon').textContent = currentBank.icon;
+        document.getElementById('bankName').textContent = currentBank.name;
+        
+        const iframe = document.getElementById('webview');
+        const loading = document.getElementById('loading');
+        
+        // Пытаемся загрузить сайт
+        iframe.src = currentBank.url;
+        
+        iframe.onload = function() {
+            loading.style.display = 'none';
+            console.log('✅ Сайт загружен');
+            
+            tg.sendData(JSON.stringify({
+                action: 'loaded',
+                bank: bank
+            }));
+        };
+        
+        iframe.onerror = function() {
+            loading.innerHTML = '❌ Ошибка загрузки<br><button onclick="openInBrowser()" style="margin-top:10px;padding:8px 16px;">Открыть в браузере</button>';
+        };
+        
+        function openInBrowser() {
+            window.open(currentBank.url, '_blank');
+        }
+        
+        function closeApp() {
+            tg.close();
+        }
+        
+        tg.BackButton.show();
+        tg.BackButton.onClick(closeApp);
+        
+    </script>
+</body>
+</html>
